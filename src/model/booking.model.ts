@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { Room } from "./room.model";
-import { string } from "zod";
-
+ 
 export interface Booking extends Document {
   _id: string;
   user_id: string;

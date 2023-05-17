@@ -2,7 +2,16 @@ import { Booking, BookingModel } from "../model/booking.model";
 import { Response } from "express";
 import { Room, RoomModel } from "../model/room.model";
 import { BookMapper } from "../mapper/booking/booking.mapper";
-import { SearchBookingParams } from "../controller/booking";
+import { ErrorEnum } from "../errors/custom.errors";
+
+export interface SearchBookingParams {
+  id?: string;
+  roomId?: string;
+  userId?: string;
+  scheduledAt?: Date;
+  scheduledUntil?: Date;
+  state?: string;
+}
 
 async function findReservedBookings(
   options: SearchBookingParams
@@ -41,7 +50,7 @@ async function get(options: SearchBookingParams) {
   const at = scheduledAt?.getTime();
   const until = scheduledUntil?.getTime();
 
-  const query: any = {
+  const query = {
     ...(id && { _id: id }),
     ...(roomId && { room: roomId }),
     ...(userId && { user_id: userId }),
@@ -51,7 +60,6 @@ async function get(options: SearchBookingParams) {
       until > now.getTime() && { scheduledUntil: { $lte: scheduledUntil } }),
   };
   const bookings: Booking[] = await BookingModel.find(query).populate("room");
-  // return bookings
   return BookMapper.toDTOs(bookings);
 }
 
@@ -70,7 +78,7 @@ async function book(
   const room = await RoomModel.findOne<Room>({ _id: roomId });
 
   if (!room) {
-    return res.status(404).json({ message: "Room not found" });
+    return res.status(404).json({ message: ErrorEnum.ROOM_NOT_FOUND });
   }
 
   const userBooking = await BookingModel.find({
@@ -79,7 +87,7 @@ async function book(
   });
   if (userBooking && userBooking.length > MAX_BOOKING_VALUE) {
     return res.status(409).json({
-      message: `Cannot book more than ${MAX_BOOKING_VALUE} rooms at a time`,
+      message: ErrorEnum.BOOKING_NOT_ALLOWED_MAX_BOOKING,
     });
   }
   const booking = await BookingModel.find({
@@ -104,16 +112,16 @@ async function book(
   if (booking && booking.length > 0) {
     return res
       .status(409)
-      .json({ message: "this room is already booked at this time" });
+      .json({ message: ErrorEnum.BOOKING_NOT_ALLOWED_ROOM_ALREADY_BOOKED });
   }
 
   if (at.getTime() < new Date().getTime() - 300_000 || until < at) {
     return res.status(400).json({
-      message: `A room cannot be booked prior to this date`,
+      message: ErrorEnum.BOOKING_NOT_ALLOWED_PRIOR_DATE,
     });
   } else if (until.getTime() >= at.getTime() + DAY_IN_MILLIS) {
     return res.status(400).json({
-      message: `You can't book for more than a day`,
+      message: ErrorEnum.BOOKING_NOT_ALLOWED_TOO_LONG_PERIOD,
     });
   }
 
@@ -132,21 +140,6 @@ async function book(
 }
 
 async function cancel(ids: string[], userId: string, res: Response) {
-  // const room = await RoomModel.findOne<Room>({ id: roomId });
-  // if (!room) {
-  //   return res.status(404).json({ message: "Room not found" });
-  // }
-
-  // const deletedBooking = await BookingModel.up({
-  //   _id: { $in: ids },
-  //   user_id: userId,
-  // });
-  // if (!deletedBooking || deletedBooking.length==0) {
-  //   return res
-  //     .status(404)
-  //     .json({ message: "No booking found for this room" });
-  // }
-
   const canceledBookings = await BookingModel.updateMany(
     { _id: { $in: ids }, user_id: userId },
     { state: "CLOSED", updatedAt: new Date() }

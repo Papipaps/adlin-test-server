@@ -5,16 +5,18 @@ import { bookingRouter } from "./controller/booking";
 import cors from "cors";
 import { connectDB } from "./db";
 import { populateData } from "./initData";
-const app = express();
+import errorHandler from "./middleware/errorhandler";
+  const app = express();
 const port = 3000;
 
 app.use(logger);
-app.use(cors({origin:'*'}));
-app.use(express.json())
-app.use(express.urlencoded({extended:true}))
-
+app.use(cors({ origin: "*" }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+ 
 app.use("/rooms", roomRouter);
 app.use("/booking", bookingRouter);
+app.use(errorHandler);
 
 connectDB()
   .then(() => {

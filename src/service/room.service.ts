@@ -21,33 +21,26 @@ async function getRooms(options: SearchOptions) {
     scheduledUntil,
     hasAll = false,
   } = options;
-
-  const query: any = {};
-  let bookings: Booking[] = [];
-  if (id) {
-    query._id = { _id: id };
-  }
-
-  if (capacity && capacity > 0) {
-    query.capacity = { $gte: capacity };
-  }
-
   const equipmentsArray: string[] | undefined = equipments?.split(",");
 
-  if (equipmentsArray && equipmentsArray.length > 0) {
-    query["equipements.name"] = {
-      ...(hasAll ? { $all: equipmentsArray } : { $in: equipmentsArray }),
-    };
-  }
+  const query: any = {
+    ...(id && { _id: id }),
+    ...(capacity && { $gte: capacity }),
+    ...(equipmentsArray &&
+      equipmentsArray.length > 0 &&
+      (hasAll ? { $all: equipmentsArray } : { $in: equipmentsArray })),
+  };
+  if (scheduledAt && scheduledUntil) {
     await BookingService.findReservedBookings({
       scheduledAt: scheduledAt,
       scheduledUntil: scheduledUntil,
     }).then((res) => {
-      bookings = res;
+      const bookings: Booking[] = res;
       query._id = { $nin: bookings.map((booking) => booking.room) };
     });
+  }
 
-  const rooms = await RoomModel.find(query);
+  const rooms = await RoomModel.find(query); 
   return RoomMapper.toDTOs(rooms);
 }
 
