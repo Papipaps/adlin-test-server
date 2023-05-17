@@ -19,7 +19,7 @@ export function populateData() {
           const message =
             roomsToInsert.length > 0
               ? `Data inserted successfully: ${insertedData}`
-              : `Rooms are already saved `;
+              : `Rooms are ready. `;
           console.log(message);
         })
         .catch((insertErr) => {

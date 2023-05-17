@@ -2,7 +2,9 @@ import { Booking, BookingModel } from "../model/booking.model";
 import { Response } from "express";
 import { Room, RoomModel } from "../model/room.model";
 import { BookMapper } from "../mapper/booking/booking.mapper";
-import { ErrorEnum } from "../errors/custom.errors";
+import { ENTITY_NOT_FOUND, ErrorEnum } from "../errors/custom.errors";
+import { BAD_REQUEST, REQUIREMENT_NOT_MET } from "../errors/custom.errors";
+import AppException from "../errors/AppException";
 
 export interface SearchBookingParams {
   id?: string;
@@ -11,11 +13,17 @@ export interface SearchBookingParams {
   scheduledAt?: Date;
   scheduledUntil?: Date;
   state?: string;
+  skip: number;
+  limit: number;
 }
 
-async function findReservedBookings(
-  options: SearchBookingParams
-): Promise<Booking[]> {
+async function findReservedBookings(options: {
+  id?: string;
+  roomId?: string;
+  userId?: string;
+  scheduledAt?: Date;
+  scheduledUntil?: Date;
+}): Promise<Booking[]> {
   const { id, userId, scheduledAt, scheduledUntil } = options;
 
   const query = {
@@ -40,12 +48,20 @@ async function findReservedBookings(
         ],
       }),
   };
-
   return await BookingModel.find(query);
 }
 
 async function get(options: SearchBookingParams) {
-  const { id, userId, scheduledAt, scheduledUntil, roomId, state } = options;
+  const {
+    id,
+    userId,
+    scheduledAt,
+    scheduledUntil,
+    roomId,
+    state,
+    limit,
+    skip,
+  } = options;
   const now = new Date();
   const at = scheduledAt?.getTime();
   const until = scheduledUntil?.getTime();
@@ -59,8 +75,14 @@ async function get(options: SearchBookingParams) {
     ...(until &&
       until > now.getTime() && { scheduledUntil: { $lte: scheduledUntil } }),
   };
-  const bookings: Booking[] = await BookingModel.find(query).populate("room");
-  return BookMapper.toDTOs(bookings);
+  const bookings: Booking[] = await BookingModel.find(query)
+    .skip(skip)
+    .limit(limit)
+    .populate("room");
+
+  const res = BookMapper.toDTOs(bookings);
+  const count: number = await BookingModel.count(query).exec();
+  return { bookings: res, count: count };
 }
 
 async function book(
@@ -86,7 +108,7 @@ async function book(
     state: "ONGOING",
   });
   if (userBooking && userBooking.length > MAX_BOOKING_VALUE) {
-    return res.status(409).json({
+    return res.status(REQUIREMENT_NOT_MET).json({
       message: ErrorEnum.BOOKING_NOT_ALLOWED_MAX_BOOKING,
     });
   }
@@ -111,16 +133,16 @@ async function book(
 
   if (booking && booking.length > 0) {
     return res
-      .status(409)
+      .status(REQUIREMENT_NOT_MET)
       .json({ message: ErrorEnum.BOOKING_NOT_ALLOWED_ROOM_ALREADY_BOOKED });
   }
 
   if (at.getTime() < new Date().getTime() - 300_000 || until < at) {
-    return res.status(400).json({
+    return res.status(REQUIREMENT_NOT_MET).json({
       message: ErrorEnum.BOOKING_NOT_ALLOWED_PRIOR_DATE,
     });
   } else if (until.getTime() >= at.getTime() + DAY_IN_MILLIS) {
-    return res.status(400).json({
+    return res.status(BAD_REQUEST).json({
       message: ErrorEnum.BOOKING_NOT_ALLOWED_TOO_LONG_PERIOD,
     });
   }

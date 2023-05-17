@@ -32,7 +32,6 @@ function toDTO(booking: Booking):BookingDTO {
 }
 
 function toDTOs(bookings:Booking[]) {
-  console.log("mapping..",bookings)
   return bookings.map(booking=>toDTO(booking))
 }
 export const BookMapper = {

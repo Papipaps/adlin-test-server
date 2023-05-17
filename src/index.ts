@@ -6,7 +6,13 @@ import cors from "cors";
 import { connectDB } from "./db";
 import { populateData } from "./initData";
 import errorHandler from "./middleware/errorhandler";
-  const app = express();
+import { tryCatch } from "./utils/controller.utils";
+// import ValidationError from "./errors/ServerException";
+import { ZodError, z } from "zod";
+import { ErrorEnum } from "./errors/custom.errors";
+import AppException from "./errors/AppException";
+import { authRouter } from "./controller/auth";
+const app = express();
 const port = 3000;
 
 app.use(logger);
@@ -14,6 +20,8 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
  
+
+app.use("/auth", authRouter);
 app.use("/rooms", roomRouter);
 app.use("/booking", bookingRouter);
 app.use(errorHandler);

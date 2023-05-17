@@ -1,17 +1,18 @@
 import express, { Request } from "express";
 import { BookingService } from "../service/booking.service";
-import { z } from "zod";
-import ServerException from "../errors/ServerException";
+import { ZodError, z } from "zod";
 import { ErrorEnum } from "../errors/custom.errors";
 import {
+  tryCatch,
   validateAsString,
   validateInputStringAsDate,
-} from "./controller.utils";
+  validateAsPositveNumber,
+} from "../utils/controller.utils";
 
 export const bookingRouter = express.Router();
 
-interface BookingParams { 
-  roomId:string;
+interface BookingParams {
+  roomId: string;
   userId: string;
   scheduledAt: Date;
   scheduledUntil: Date;
@@ -38,41 +39,54 @@ const bookingSearchSchema = () => {
     scheduledUntil: validateInputStringAsDate().optional(),
     userId: validateAsString().optional(),
     roomId: validateAsString().optional(),
+    page: validateAsPositveNumber().optional(),
+    size: validateAsPositveNumber().optional(),
   });
 };
 
-bookingRouter.get("/list", async (req, res) => {
-  const parsed = bookingSearchSchema().safeParse(req.query);
+bookingRouter.get(
+  "/list",
+  tryCatch(async (req, res) => {
+    const parsed = bookingSearchSchema().safeParse(req.query);
 
-  if (!parsed.success) {
-    return res.status(400).json({
-      message: ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
-      error: parsed.error,
-    });
-  }
+    if (!parsed.success) {
+      throw new ZodError(parsed.error.issues);
+    }
 
-  const { id, scheduledAt, scheduledUntil, userId, roomId, state } =
-    parsed.data;
-  try {
-    const rooms = await BookingService.get({
+    const {
+      id,
+      scheduledAt,
+      scheduledUntil,
+      userId,
+      roomId,
+      state,
+      page = 1,
+      size = 10,
+    } = parsed.data;
+
+    const skip = (page - 1) * size;
+
+    const resData = await BookingService.get({
       id: id,
       roomId: roomId,
       userId: userId,
       scheduledAt: scheduledAt,
       scheduledUntil: scheduledUntil,
       state: state,
+      skip: skip,
+      limit: size,
     });
-    res.send(rooms);
-  } catch (error) {
-    throw new ServerException([
-      { type: "UNKNOWN", message: ErrorEnum.SERVER_UNKNOWN },
-    ]);
-  }
-});
+    if (resData.bookings.length === 0) {
+      return res.status(204).send(resData);
+    }
+    return res.status(200).send(resData);
+  })
+);
 
-bookingRouter.post("/book", async (req, res) => {
-  try {
-    const params: BookingParams = req.body; 
+bookingRouter.post(
+  "/book",
+  tryCatch(async (req, res) => {
+    const params: BookingParams = req.body;
     const parsed = bookingSchema().safeParse(params);
 
     if (!parsed.success) {
@@ -92,35 +106,27 @@ bookingRouter.post("/book", async (req, res) => {
         scheduledUntil
       );
     }
-  } catch (error) {
-    throw new ServerException([
-      { type: "UNKNOWN", message: ErrorEnum.SERVER_UNKNOWN },
-    ]);
-  }
-});
+  })
+);
 
-bookingRouter.delete("/cancel", async (req, res) => {
-  const params: { ids: string[]; userId: string } = req.body;
+bookingRouter.patch(
+  "/cancel",
+  tryCatch(async (req, res) => {
+    const params: { ids: string[]; userId: string } = req.body;
 
-  const parsed = z
-    .object({ ids: z.array(z.string()), userId: z.string() })
-    .safeParse(params);
-  if (!parsed.success) {
-    return res.status(400).json({
-      message: ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
-      error: parsed.error,
-    });
-  }
-  const { ids, userId } = parsed.data;
-  try {
+    const parsed = z
+      .object({ ids: z.array(z.string()), userId: z.string() })
+      .safeParse(params);
+
+    if (!parsed.success) {
+      throw new ZodError(parsed.error.issues);
+    }
+
+    const { ids, userId } = parsed.data;
     const canceledBookings = await BookingService.cancel(ids, userId, res);
     res.status(200).json({
       message: "Booking canceled successfully",
       bookings: canceledBookings,
     });
-  } catch (error) {
-    throw new ServerException([
-      { type: "UNKNOWN", message: ErrorEnum.SERVER_UNKNOWN },
-    ]);
-  }
-});
+  })
+);
