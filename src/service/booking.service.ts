@@ -8,6 +8,7 @@ import {
   REQUIREMENT_NOT_MET,
 } from "../errors/custom.errors";
 import AppException from "../errors/AppException";
+import { writeBookingToFile } from "../utils/utils";
 
 export interface SearchBookingParams {
   id?: string;
@@ -90,7 +91,7 @@ async function get(options: SearchBookingParams) {
 
 async function book(
   roomId: string,
-  userId: string, 
+  userId: string,
   scheduledAt: Date,
   scheduledUntil: Date
 ): Promise<Booking> {
@@ -164,7 +165,7 @@ async function book(
     scheduledUntil: until,
     state: "ONGOING",
   }).save();
-
+  writeBookingToFile(newBooking);
   return newBooking;
 }
 

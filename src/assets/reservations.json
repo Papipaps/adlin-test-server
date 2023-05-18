@@ -1,0 +1,60 @@
+[
+  {
+    "user_id": "7dbf76c4-b385-4df3-9b30-a39c473892c5",
+    "room": {
+      "_id": "6466228dc90a3c384c2f89d9",
+      "name": "Salle #1",
+      "description": "Salle #1",
+      "capacity": 5,
+      "equipements": [
+        {
+          "name": "TV",
+          "_id": "6466228dc90a3c384c2f89da"
+        },
+        {
+          "name": "Retro Projecteur",
+          "_id": "6466228dc90a3c384c2f89db"
+        }
+      ],
+      "createdAt": "2016-12-07T12:39:29.812Z",
+      "updatedAt": "2016-12-08T17:31:39.489Z",
+      "__v": 0
+    },
+    "scheduledAt": "2024-05-18T10:58:02.160Z",
+    "scheduledUntil": "2024-05-18T11:28:02.160Z",
+    "state": "ONGOING",
+    "_id": "646627991f9d6b73448cc637",
+    "createdAt": "2023-05-18T13:26:49.838Z",
+    "updatedAt": "2023-05-18T13:26:49.838Z",
+    "__v": 0
+  },
+  {
+    "user_id": "7dbf76c4-b385-4df3-9b30-a39c473892c5",
+    "room": {
+      "_id": "6466228dc90a3c384c2f89df",
+      "name": "Salle de ouf",
+      "description": "Salle de ouf",
+      "capacity": 10,
+      "equipements": [
+        {
+          "name": "TV",
+          "_id": "6466228dc90a3c384c2f89e0"
+        },
+        {
+          "name": "Retro Projecteur",
+          "_id": "6466228dc90a3c384c2f89e1"
+        }
+      ],
+      "createdAt": "2016-12-09T16:45:34.419Z",
+      "updatedAt": "2016-12-09T16:45:34.419Z",
+      "__v": 0
+    },
+    "scheduledAt": "2024-05-18T10:58:02.160Z",
+    "scheduledUntil": "2024-05-18T11:28:02.160Z",
+    "state": "ONGOING",
+    "_id": "646627ecd3da5c1889438489",
+    "createdAt": "2023-05-18T13:28:12.005Z",
+    "updatedAt": "2023-05-18T13:28:12.005Z",
+    "__v": 0
+  }
+]

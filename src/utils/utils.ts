@@ -1,30 +1,5 @@
 import fs from "fs";
-import csv from "csv-parser";
-
-export function readCsvWithPagination(
-  filePath: string,
-  size: number,
-  page: number
-): Promise<any[]> {
-  let results: string[] = [];
-  let start = size * (page - 1);
-  let end = size * page;
-
-  return new Promise((resolve, reject) => {
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on("data", (data) => {
-        results.push(data);
-      })
-      .on("end", () => {
-        let paginatedResults = results.slice(start, end);
-        resolve(paginatedResults);
-      })
-      .on("error", (error) => {
-        reject(error);
-      });
-  });
-}
+import { Booking } from "../model/booking.model";
 
 export function readJSONFromFile(filePath: string): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -42,18 +17,16 @@ export function readJSONFromFile(filePath: string): Promise<any> {
       }
     });
   });
-}
+} 
 
-export function encrypt(input: string): string {
-  let encryptedString = '';
-  
-  for (let i = 0; i < input.length; i++) {
-    const charCode = input.charCodeAt(i);
-    const encryptedCharCode = charCode + 1;
-    
-    encryptedString += String.fromCharCode(encryptedCharCode);
+export const writeBookingToFile = (booking: Booking): void => {
+  let bookings: Booking[] = [];
+ 
+  if (fs.existsSync('src/assets/reservations.json')) {
+    const fileData = fs.readFileSync('src/assets/reservations.json', 'utf-8');
+    bookings = JSON.parse(fileData);
   }
-  
-  return encryptedString;
-}
-
+  bookings.push(booking);
+ 
+  fs.writeFileSync("src/assets/reservations.json", JSON.stringify(bookings, null, 2));
+};
