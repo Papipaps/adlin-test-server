@@ -1,8 +1,6 @@
 import express from "express";
 import { RoomService } from "../service/room.service";
-import { ZodError, number, z } from "zod";
-import { Request } from "express";
-// import ValidationException from "../errors/ValidationException";
+import { z } from "zod";
 import {
   validateStringAsNumber,
   validateInputStringAsDate,
@@ -10,8 +8,8 @@ import {
   validateInputStringAsBoolean,
   tryCatch,
 } from "../utils/controller.utils";
-import AppException from "../errors/AppException";
-import { ErrorEnum, UNKNOW_SERVER_ERROR } from "../errors/custom.errors";
+import { ErrorEnum, INVALID_REQUEST_DATA } from "../errors/custom.errors";
+import ValidationException from "../errors/ValidationException";
 
 export const roomRouter = express.Router();
 
@@ -29,7 +27,12 @@ roomRouter.get(
   tryCatch(async (req, res) => {
     const parsed = optionSchema.safeParse(req.query);
     if (!parsed.success) {
-      throw new ZodError(parsed.error.issues);
+      throw new ValidationException(
+        ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
+        400,
+        INVALID_REQUEST_DATA,
+        parsed.error.issues?.map((i) => i.path.join(" "))
+      );
     }
     const { id, capacity, scheduledAt, scheduledUntil, equipments, hasAll } =
       parsed.data;
@@ -42,9 +45,6 @@ roomRouter.get(
       equipments: equipments,
       hasAll: hasAll,
     });
-    if (rooms.length === 0) {
-      return res.status(204).send(rooms);
-    }
     return res.status(200).send(rooms);
   })
 );

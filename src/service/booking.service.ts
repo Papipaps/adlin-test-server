@@ -3,7 +3,10 @@ import { Response } from "express";
 import { Room, RoomModel } from "../model/room.model";
 import { BookMapper } from "../mapper/booking/booking.mapper";
 import { ENTITY_NOT_FOUND, ErrorEnum } from "../errors/custom.errors";
-import { BAD_REQUEST, REQUIREMENT_NOT_MET } from "../errors/custom.errors";
+import {
+  INVALID_REQUEST_DATA,
+  REQUIREMENT_NOT_MET,
+} from "../errors/custom.errors";
 import AppException from "../errors/AppException";
 
 export interface SearchBookingParams {
@@ -87,11 +90,10 @@ async function get(options: SearchBookingParams) {
 
 async function book(
   roomId: string,
-  userId: string,
-  res: Response,
+  userId: string, 
   scheduledAt: Date,
   scheduledUntil: Date
-): Promise<Response<any, Record<string, any>>> {
+): Promise<Booking> {
   const at = new Date(scheduledAt);
   const until = new Date(scheduledUntil);
   const DAY_IN_MILLIS: number = 86_400_000;
@@ -100,7 +102,7 @@ async function book(
   const room = await RoomModel.findOne<Room>({ _id: roomId });
 
   if (!room) {
-    return res.status(404).json({ message: ErrorEnum.ROOM_NOT_FOUND });
+    throw new AppException(ErrorEnum.ROOM_NOT_FOUND, 400, ENTITY_NOT_FOUND);
   }
 
   const userBooking = await BookingModel.find({
@@ -108,9 +110,11 @@ async function book(
     state: "ONGOING",
   });
   if (userBooking && userBooking.length > MAX_BOOKING_VALUE) {
-    return res.status(REQUIREMENT_NOT_MET).json({
-      message: ErrorEnum.BOOKING_NOT_ALLOWED_MAX_BOOKING,
-    });
+    throw new AppException(
+      ErrorEnum.BOOKING_NOT_ALLOWED_MAX_BOOKING,
+      409,
+      REQUIREMENT_NOT_MET
+    );
   }
   const booking = await BookingModel.find({
     room: room._id,
@@ -132,19 +136,25 @@ async function book(
   });
 
   if (booking && booking.length > 0) {
-    return res
-      .status(REQUIREMENT_NOT_MET)
-      .json({ message: ErrorEnum.BOOKING_NOT_ALLOWED_ROOM_ALREADY_BOOKED });
+    throw new AppException(
+      ErrorEnum.BOOKING_NOT_ALLOWED_ROOM_ALREADY_BOOKED,
+      409,
+      REQUIREMENT_NOT_MET
+    );
   }
 
   if (at.getTime() < new Date().getTime() - 300_000 || until < at) {
-    return res.status(REQUIREMENT_NOT_MET).json({
-      message: ErrorEnum.BOOKING_NOT_ALLOWED_PRIOR_DATE,
-    });
+    throw new AppException(
+      ErrorEnum.BOOKING_NOT_ALLOWED_PRIOR_DATE,
+      409,
+      REQUIREMENT_NOT_MET
+    );
   } else if (until.getTime() >= at.getTime() + DAY_IN_MILLIS) {
-    return res.status(BAD_REQUEST).json({
-      message: ErrorEnum.BOOKING_NOT_ALLOWED_TOO_LONG_PERIOD,
-    });
+    throw new AppException(
+      ErrorEnum.BOOKING_NOT_ALLOWED_PRIOR_DATE,
+      400,
+      INVALID_REQUEST_DATA
+    );
   }
 
   const newBooking = await new BookingModel({
@@ -155,10 +165,7 @@ async function book(
     state: "ONGOING",
   }).save();
 
-  return res.status(200).json({
-    message: "Booking successful",
-    booking: newBooking,
-  });
+  return newBooking;
 }
 
 async function cancel(ids: string[], userId: string, res: Response) {
@@ -166,7 +173,9 @@ async function cancel(ids: string[], userId: string, res: Response) {
     { _id: { $in: ids }, user_id: userId },
     { state: "CLOSED", updatedAt: new Date() }
   );
-
+  if (canceledBookings.modifiedCount === 0) {
+    throw new AppException(ErrorEnum.ROOM_NOT_FOUND, 400, ENTITY_NOT_FOUND);
+  }
   return canceledBookings;
 }
 

@@ -15,12 +15,19 @@ import { authRouter } from "./controller/auth";
 const app = express();
 const port = 3000;
 
+//MIDDLEWARE
 app.use(logger);
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+/*
+  app.use(securityFilter) -> Récupération de l'utilisateur et de ses roles
+  On vérifie les authorisationS de utilisateur pour chaque route qu'il essaie d'accéder.
+*/
  
 
+
+//CONTROLLERS
 app.use("/auth", authRouter);
 app.use("/rooms", roomRouter);
 app.use("/booking", bookingRouter);

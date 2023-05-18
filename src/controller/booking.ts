@@ -1,13 +1,14 @@
 import express, { Request } from "express";
 import { BookingService } from "../service/booking.service";
 import { ZodError, z } from "zod";
-import { ErrorEnum } from "../errors/custom.errors";
+import { INVALID_REQUEST_DATA, ErrorEnum } from "../errors/custom.errors";
 import {
   tryCatch,
   validateAsString,
   validateInputStringAsDate,
   validateAsPositveNumber,
 } from "../utils/controller.utils";
+import ValidationException from "../errors/ValidationException";
 
 export const bookingRouter = express.Router();
 
@@ -50,7 +51,12 @@ bookingRouter.get(
     const parsed = bookingSearchSchema().safeParse(req.query);
 
     if (!parsed.success) {
-      throw new ZodError(parsed.error.issues);
+      throw new ValidationException(
+        ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
+        400,
+        INVALID_REQUEST_DATA,
+        parsed.error.issues?.map((i) => i.path.join(" "))
+      );
     }
 
     const {
@@ -76,9 +82,6 @@ bookingRouter.get(
       skip: skip,
       limit: size,
     });
-    if (resData.bookings.length === 0) {
-      return res.status(204).send(resData);
-    }
     return res.status(200).send(resData);
   })
 );
@@ -90,22 +93,25 @@ bookingRouter.post(
     const parsed = bookingSchema().safeParse(params);
 
     if (!parsed.success) {
-      return res.status(400).json({
-        message: ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
-        error: parsed.error,
-      });
+      throw new ValidationException(
+        ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
+        400,
+        INVALID_REQUEST_DATA,
+        parsed.error.issues?.map((i) => i.path.join(" "))
+      );
     }
     const { roomId, scheduledAt, scheduledUntil, userId } = parsed.data;
 
-    if (roomId && userId && scheduledAt && scheduledUntil) {
-      return await BookingService.book(
-        roomId,
-        userId,
-        res,
-        scheduledAt,
-        scheduledUntil
-      );
-    }
+    const newBooking = await BookingService.book(
+      roomId,
+      userId,
+      scheduledAt,
+      scheduledUntil
+    );
+    res.status(200).json({
+      message: "Booking successful",
+      booking: newBooking,
+    });
   })
 );
 
@@ -119,7 +125,12 @@ bookingRouter.patch(
       .safeParse(params);
 
     if (!parsed.success) {
-      throw new ZodError(parsed.error.issues);
+      throw new ValidationException(
+        ErrorEnum.VALIDATION_BAD_REQUEST_INVALID_FORMAT,
+        400,
+        INVALID_REQUEST_DATA,
+        parsed.error.issues?.map((i) => i.path.join(" "))
+      );
     }
 
     const { ids, userId } = parsed.data;

@@ -2,7 +2,7 @@ import e, { Request, Response, NextFunction } from "express";
 // import ValidationException from "../errors/ValidationException";
 // import ServerException from "../errors/ServerException";
 import {
-  BAD_REQUEST,
+  INVALID_REQUEST_DATA,
   DATABASE_TRANSACTION_ERROR,
   ErrorEnum,
   IError,
@@ -11,6 +11,7 @@ import {
 import { ZodError } from "zod";
 import AppException from "../errors/AppException";
 import AuthException from "../errors/AuthException";
+import ValidationException from "../errors/ValidationException";
 
 const errorHandler = (
   error: Error,
@@ -18,7 +19,6 @@ const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-
   console.log(error);
 
   const errorObject: IError = {
@@ -30,7 +30,7 @@ const errorHandler = (
   if (error instanceof AppException) {
     errorObject.type = "Operational error";
     errorObject.message = error.message;
-    errorObject.errorCode = error.errorCode; 
+    errorObject.errorCode = error.errorCode;
     return res.status(error.statusCode).send(errorObject);
   }
 
@@ -46,14 +46,11 @@ const errorHandler = (
     return res.status(401).send({ ...errorObject, success: false });
   }
 
-  if (error instanceof ZodError) {
+  if (error instanceof ValidationException) {
     errorObject.type = "Validation error";
-    errorObject.message = JSON.parse(error.message).map(
-      (message: { [key: string]: any }) => ({
-        message: message.message,
-      })
-    );
-    errorObject.errorCode = BAD_REQUEST;
+    errorObject.properties = error.properties;
+    errorObject.message = errorObject.message;
+    errorObject.errorCode = error.errorCode;
     return res.status(400).send(errorObject);
   }
 
