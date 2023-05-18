@@ -12,7 +12,7 @@ import { ZodError, z } from "zod";
 import { ErrorEnum } from "./errors/custom.errors";
 import AppException from "./errors/AppException";
 import { authRouter } from "./controller/auth";
-const app = express();
+export const app = express();
 const port = 3000;
 
 //MIDDLEWARE

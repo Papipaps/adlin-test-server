@@ -19,7 +19,7 @@ const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  console.log(error);
+  console.log(`\n\t[${new Date().toISOString()}] ERROR HANDLER :::: ${error}`);
 
   const errorObject: IError = {
     type: "Server error",
