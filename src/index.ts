@@ -12,6 +12,7 @@ import { ZodError, z } from "zod";
 import { ErrorEnum } from "./errors/custom.errors";
 import AppException from "./errors/AppException";
 import { authRouter } from "./controller/auth";
+import securityFilter from "./middleware/securityFilter";
 export const app = express();
 const port = 3000;
 
@@ -20,6 +21,7 @@ app.use(logger);
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(securityFilter) 
 /*
   app.use(securityFilter) -> Récupération de l'utilisateur et de ses roles
   On vérifie les authorisationS de utilisateur pour chaque route qu'il essaie d'accéder.

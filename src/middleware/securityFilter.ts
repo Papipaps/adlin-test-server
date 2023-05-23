@@ -1,15 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
-function tokenMiddleware(req: Request, res: Response, next: NextFunction) {
-  const token = req.headers['Token'];
+function securityFilter(req: Request, res: Response, next: NextFunction) {
+  const token = req.header("Token");
+  const API_TOKEN = process.env.API_TOKEN;
 
-const API_TOKEN = process.env.API_TOKEN;
-  if (!token || token != API_TOKEN) {
-    return res.status(401).json({ message: 'Not authorized'});
+  if (!token || token !== API_TOKEN) {
+    return res.status(401).json({ message: "Not authorized" });
   }
-//récupération des rôles des utilisateurs et vérification des autorisations selon la route 
+  //récupération des rôles des utilisateurs et vérification des autorisations selon la route
 
   next();
 }
 
-export default tokenMiddleware;
+export default securityFilter;
